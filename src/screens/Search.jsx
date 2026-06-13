@@ -36,6 +36,26 @@ export default function Search() {
       .map((x) => x.u)
   }, [query, state.users, me.id])
 
+  // Resolve ANY typed name/$cashtag into a payable profile (like paying any
+  // cashtag in the real app). Data is simulated — not from real accounts.
+  const synthetic = useMemo(() => {
+    const q = query.trim()
+    if (!q) return null
+    const exists = state.users.some(
+      (u) =>
+        u.name.toLowerCase() === q.toLowerCase() ||
+        u.cashtag.toLowerCase() === q.toLowerCase() ||
+        u.cashtag.toLowerCase() === '$' + q.toLowerCase(),
+    )
+    if (exists) return null
+    const isTag = q.startsWith('$')
+    const base = (isTag ? q.slice(1) : q).replace(/[^a-zA-Z0-9 ]/g, '')
+    if (!base.trim()) return null
+    const cashtag = '$' + base.toLowerCase().replace(/\s+/g, '')
+    const name = base.replace(/\b\w/g, (c) => c.toUpperCase())
+    return { id: 'syn-' + cashtag, name, cashtag, balance: 0, synthetic: true }
+  }, [query, state.users])
+
   const amount = Math.round(parseFloat(raw) * 100) / 100 || 0
   const insufficientPay = amount > me.balance
 
@@ -47,6 +67,10 @@ export default function Search() {
 
   function act(mode) {
     if (!amount || amount <= 0) return
+    // Persist a newly-searched cashtag so it becomes a real payable user.
+    if (selected.synthetic) {
+      dispatch({ type: 'ADD_USER', id: selected.id, name: selected.name, cashtag: selected.cashtag, balance: 0 })
+    }
     if (mode === 'pay') {
       if (insufficientPay) return
       dispatch({ type: 'PAY', fromId: me.id, toId: selected.id, amount, note: note.trim() })
@@ -80,27 +104,41 @@ export default function Search() {
       </div>
 
       <div className="section-label">
-        {query ? `${results.length} result${results.length === 1 ? '' : 's'}` : 'People on Cash'}
+        {query ? `${results.length} match${results.length === 1 ? '' : 'es'}` : 'People on Cash'}
       </div>
 
-      {results.length === 0 ? (
+      {results.map((u) => (
+        <button key={u.id} className="row" onClick={() => open(u)}>
+          <Avatar user={u} />
+          <div className="row-main">
+            <div className="row-title"><Highlight text={u.name} query={query} /></div>
+            <div className="row-sub"><Highlight text={u.cashtag} query={query} /></div>
+          </div>
+          <span className="badge green">Pay</span>
+        </button>
+      ))}
+
+      {synthetic && (
+        <>
+          <div className="section-label">Send to a new $cashtag</div>
+          <button className="row" onClick={() => open(synthetic)}>
+            <Avatar user={synthetic} />
+            <div className="row-main">
+              <div className="row-title">{synthetic.cashtag}</div>
+              <div className="row-sub">Pay anyone by their $cashtag</div>
+            </div>
+            <span className="badge green">Pay</span>
+          </button>
+        </>
+      )}
+
+      {results.length === 0 && !synthetic && query && (
         <div className="empty">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="7" /><path d="m20 20-3.2-3.2" strokeLinecap="round" />
           </svg>
-          <div>No one matches “{query}”.</div>
+          <div>Type a name or $cashtag to find someone.</div>
         </div>
-      ) : (
-        results.map((u) => (
-          <button key={u.id} className="row" onClick={() => open(u)}>
-            <Avatar user={u} />
-            <div className="row-main">
-              <div className="row-title"><Highlight text={u.name} query={query} /></div>
-              <div className="row-sub"><Highlight text={u.cashtag} query={query} /></div>
-            </div>
-            <span className="badge green">Pay</span>
-          </button>
-        ))
       )}
 
       {selected && (

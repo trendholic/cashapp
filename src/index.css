@@ -75,20 +75,21 @@ input {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* On mobile/standalone, clear the real iOS status bar (notch). */
+  padding-top: env(safe-area-inset-top);
 }
 
-/* Mobile: edge-to-edge, real status bar accounts for the notch */
+/* Mobile: the OS draws the real status bar, so hide our mock one. */
 .statusbar {
+  display: none;
   height: 50px;
   flex-shrink: 0;
-  display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 26px 0 30px;
   position: relative;
   font-size: 15px;
   font-weight: 600;
-  padding-top: env(safe-area-inset-top);
 }
 
 .sb-time {
@@ -144,8 +145,12 @@ input {
     display: block;
   }
   .statusbar {
+    display: flex;
     height: 54px;
     padding-top: 6px;
+  }
+  .viewport {
+    padding-top: 0;
   }
   .home-indicator {
     display: block;

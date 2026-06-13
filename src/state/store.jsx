@@ -84,7 +84,10 @@ function reducer(state, action) {
         users: state.users.map((u) => (u.id === action.userId ? { ...u, balance: round(action.amount) } : u)),
       }
     case 'ADD_USER': {
-      const id = 'u' + Date.now()
+      const id = action.id || 'u' + Date.now()
+      if (state.users.some((u) => u.id === id || u.cashtag.toLowerCase() === action.cashtag.toLowerCase())) {
+        return state
+      }
       return {
         ...state,
         users: [...state.users, { id, name: action.name, cashtag: action.cashtag, balance: round(action.balance || 0) }],
