@@ -1,13 +1,15 @@
 import { colorFor, initials } from '../data/seed'
 
-export default function Avatar({ name, size = 'md' }) {
+export default function Avatar({ user, name, size = 'md' }) {
+  const label = user?.name || name || '?'
+  const seed = user?.cashtag || label
   return (
     <div
-      className={`avatar${size === 'lg' ? ' lg' : ''}`}
-      style={{ background: colorFor(name) }}
+      className={`avatar avatar-${size}`}
+      style={{ background: colorFor(seed) }}
       aria-hidden="true"
     >
-      {initials(name)}
+      {initials(label)}
     </div>
   )
 }

@@ -3,64 +3,56 @@ import { useStore } from '../state/store'
 import Avatar from '../components/Avatar'
 import { formatMoney, relativeDate } from '../utils/format'
 
-const META = {
-  sent: { sign: -1, verb: 'Paid', icon: '↑' },
-  received: { sign: 1, verb: 'Received from', icon: '↓' },
-  requested: { sign: 0, verb: 'Requested from', icon: '⏳' },
-  cash_added: { sign: 1, verb: '', icon: '🏦' },
-  cash_out: { sign: -1, verb: '', icon: '🏦' },
-}
-
-function describe(tx) {
+function view(tx, me, userById) {
   switch (tx.type) {
-    case 'sent':
-      return { title: tx.name, sub: tx.note || 'Payment' }
-    case 'received':
-      return { title: tx.name, sub: tx.note || 'Payment' }
-    case 'requested':
-      return { title: tx.name, sub: tx.note ? `Requested · ${tx.note}` : 'Requested' }
+    case 'sent': {
+      const u = userById(tx.toId)
+      return { user: u, title: u?.name || 'Payment', sub: tx.note || 'Payment', sign: -1 }
+    }
+    case 'received': {
+      const u = userById(tx.fromId)
+      return { user: u, title: u?.name || 'Payment', sub: tx.note || 'Payment', sign: +1 }
+    }
+    case 'requested': {
+      const u = userById(tx.toId)
+      return { user: u, title: u?.name || 'Request', sub: tx.note ? `Requested · ${tx.note}` : 'Requested', sign: 0, pending: true }
+    }
     case 'cash_added':
-      return { title: 'Added Cash', sub: tx.note }
+      return { icon: '🏦', title: 'Added Cash', sub: tx.note, sign: +1 }
     case 'cash_out':
-      return { title: 'Cash Out', sub: tx.note }
+      return { icon: '🏦', title: 'Cash Out', sub: tx.note, sign: -1 }
+    case 'admin_credit':
+      return { icon: '🛡️', title: 'Admin Deposit', sub: tx.note, sign: +1 }
     default:
-      return { title: tx.name, sub: '' }
+      return { title: 'Transaction', sub: '', sign: 0 }
   }
 }
 
 export default function Activity() {
-  const { state } = useStore()
+  const { state, me, userById } = useStore()
   const [filter, setFilter] = useState('all')
 
+  // Only transactions that involve the current user
+  const mine = useMemo(
+    () => state.transactions.filter((t) => t.fromId === me.id || t.toId === me.id),
+    [state.transactions, me.id],
+  )
+
   const txs = useMemo(() => {
-    if (filter === 'all') return state.transactions
-    if (filter === 'pending') return state.transactions.filter((t) => t.pending)
-    return state.transactions.filter((t) => t.type === filter)
-  }, [filter, state.transactions])
+    if (filter === 'all') return mine
+    if (filter === 'pending') return mine.filter((t) => t.pending)
+    if (filter === 'sent') return mine.filter((t) => (t.fromId === me.id && !t.pending) && t.type !== 'cash_added')
+    if (filter === 'received') return mine.filter((t) => t.toId === me.id && !t.pending)
+    return mine
+  }, [filter, mine, me.id])
 
   return (
     <div className="screen">
       <h1 className="screen-title">Activity</h1>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-        {[
-          ['all', 'All'],
-          ['sent', 'Sent'],
-          ['received', 'Received'],
-          ['pending', 'Pending'],
-        ].map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setFilter(key)}
-            style={{
-              padding: '7px 14px',
-              borderRadius: 999,
-              fontWeight: 600,
-              fontSize: 14,
-              background: filter === key ? 'var(--green)' : 'var(--surface)',
-              color: filter === key ? '#000' : 'var(--text)',
-            }}
-          >
+      <div className="chip-row">
+        {[['all', 'All'], ['sent', 'Sent'], ['received', 'Received'], ['pending', 'Pending']].map(([k, label]) => (
+          <button key={k} className={`chip${filter === k ? ' active' : ''}`} onClick={() => setFilter(k)}>
             {label}
           </button>
         ))}
@@ -69,43 +61,28 @@ export default function Activity() {
       {txs.length === 0 ? (
         <div className="empty">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M22 12h-4l-3 9L9 3l-3 9H2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M3 12h4l2.5 7 5-14L17 12h4" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <div>No activity yet.</div>
         </div>
       ) : (
         txs.map((tx) => {
-          const meta = META[tx.type] || META.sent
-          const { title, sub } = describe(tx)
-          const signed = meta.sign * tx.amount
+          const v = view(tx, me, userById)
+          const signed = v.sign * tx.amount
           return (
             <div key={tx.id}>
               <div className="row">
-                {tx.contactId ? (
-                  <Avatar name={tx.name} />
+                {v.user ? (
+                  <Avatar user={v.user} />
                 ) : (
-                  <div
-                    className="avatar"
-                    style={{ background: 'var(--surface-2)', fontSize: 20 }}
-                  >
-                    {meta.icon}
-                  </div>
+                  <div className="avatar avatar-md" style={{ background: 'var(--surface-2)', fontSize: 20 }}>{v.icon}</div>
                 )}
                 <div className="row-main">
-                  <div className="row-title">{title}</div>
-                  <div className="row-sub">
-                    {sub} · {relativeDate(tx.date)}
-                  </div>
+                  <div className="row-title">{v.title}</div>
+                  <div className="row-sub">{v.sub} · {relativeDate(tx.date)}</div>
                 </div>
-                <div
-                  className={`row-amount${signed > 0 ? ' positive' : ''}`}
-                  style={tx.pending ? { color: 'var(--text-dim)' } : undefined}
-                >
-                  {tx.pending
-                    ? formatMoney(tx.amount)
-                    : meta.sign === 0
-                      ? formatMoney(tx.amount)
-                      : formatMoney(signed, true)}
+                <div className={`row-amount${signed > 0 ? ' positive' : ''}${v.pending ? ' pending' : ''}`}>
+                  {v.pending || v.sign === 0 ? formatMoney(tx.amount) : formatMoney(signed, true)}
                 </div>
               </div>
               <div className="divider" />
