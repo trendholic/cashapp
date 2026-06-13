@@ -4,6 +4,16 @@ import { useToast } from '../components/Toast'
 import Avatar from '../components/Avatar'
 import { formatMoney } from '../utils/format'
 
+const SETTINGS = [
+  { label: 'Linked Banks', icon: '🏦', bg: '#1f6feb' },
+  { label: 'Bitcoin', icon: '₿', bg: '#f7931a' },
+  { label: 'Cash Card', icon: '💳', bg: '#111' },
+  { label: 'Personal', icon: '👤', bg: '#34c759' },
+  { label: 'Notifications', icon: '🔔', bg: '#ff3b30' },
+  { label: 'Security & Privacy', icon: '🔒', bg: '#8e8e93' },
+  { label: 'Support', icon: '💬', bg: '#5e5ce6' },
+]
+
 export default function Profile() {
   const { state, me, dispatch } = useStore()
   const toast = useToast()
@@ -55,9 +65,25 @@ export default function Profile() {
         <div className="stat-row"><span>People on Cash</span><span style={{ color: 'var(--text-dim)' }}>{state.users.length}</span></div>
       </div>
 
+      <div className="section-label">Settings</div>
+      <div className="card" style={{ padding: '4px 16px', marginTop: 4 }}>
+        {SETTINGS.map((s, i) => (
+          <div key={s.label}>
+            <button className="setting-row" onClick={() => toast(`${s.label} isn't part of this demo`)}>
+              <span className="setting-ic" style={{ background: s.bg }}>{s.icon}</span>
+              <span className="setting-label">{s.label}</span>
+              <svg className="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                <path d="m9 6 6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {i < SETTINGS.length - 1 && <div className="divider" style={{ margin: '0 0 0 50px' }} />}
+          </div>
+        ))}
+      </div>
+
       <button
         className="link-btn"
-        style={{ marginTop: 22, display: 'block', color: 'var(--danger)' }}
+        style={{ marginTop: 22, display: 'block', color: 'var(--danger)', textAlign: 'center', width: '100%' }}
         onClick={() => {
           if (confirm('Reset all data back to demo defaults?')) {
             dispatch({ type: 'RESET' })
@@ -67,6 +93,9 @@ export default function Profile() {
       >
         Reset demo data
       </button>
+      <div style={{ textAlign: 'center', color: 'var(--text-dim-2)', fontSize: 12, marginTop: 18 }}>
+        Cash · Demo build · v2.0
+      </div>
 
       {sheet && (
         <div className="sheet-backdrop" onClick={() => setSheet(null)}>
