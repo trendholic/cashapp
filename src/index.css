@@ -451,11 +451,31 @@ input {
 
 .search-bar input {
   flex: 1;
+  min-width: 0;
   background: none;
   border: none;
   outline: none;
   color: var(--text);
   font-size: 16px;
+}
+
+.search-clear {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  color: var(--text-dim);
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hl {
+  color: var(--green);
+  font-weight: 700;
 }
 
 /* ---------- Sheet / modal ---------- */

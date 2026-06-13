@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../state/store'
 import { useToast } from '../components/Toast'
 import Avatar from '../components/Avatar'
+import Highlight from '../components/Highlight'
 import { formatMoney } from '../utils/format'
 
 export default function Send() {
@@ -65,8 +66,8 @@ export default function Send() {
         <button key={u.id} className="row" onClick={() => { setSelected(u); setNote('') }}>
           <Avatar user={u} />
           <div className="row-main">
-            <div className="row-title">{u.name}</div>
-            <div className="row-sub">{u.cashtag}</div>
+            <div className="row-title"><Highlight text={u.name} query={query} /></div>
+            <div className="row-sub"><Highlight text={u.cashtag} query={query} /></div>
           </div>
         </button>
       ))}
